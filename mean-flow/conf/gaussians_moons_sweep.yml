@@ -1,0 +1,10 @@
+program: main.py
+method: grid
+metric:
+  name: train_loss
+  goal: minimize
+parameters:
+  use_optimal_transport:
+    values: [True, False]
+  unequal_ratio:
+    values: [0, 0.25, 0.5, 1]
