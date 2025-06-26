@@ -2,22 +2,27 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+
 class DataType(str, Enum):
     GAUSSIANS_MOONS = 'gaussians_moons'
     MNIST = 'mnist'
 
+
 class ModelType(str, Enum):
     MLP = 'mlp'
-    U_NET = 'unet'
+    U_NET = 'u_net'
+
 
 @dataclass
 class DataConfig:
     batch_size: int = 256
     data_type: DataType = DataType.GAUSSIANS_MOONS
 
+
 @dataclass
 class ModelConfig:
     model_type: ModelType = ModelType.MLP
+
 
 @dataclass
 class MeanFlowConfig:

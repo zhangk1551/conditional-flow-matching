@@ -2,10 +2,13 @@ import torch
 import pytorch_lightning as pl
 
 from torchcfm.utils import sample_8gaussians
+from torchvision import transforms
 
+
+from mean_flow.configs import ModelType, DataType
 from mean_flow.flow_models import MeanFlow
-from mean_flow.models import MLP
-from mean_flow.utils import plot_samples
+from mean_flow.models import MLP, UNet
+from mean_flow.utils import plot_samples, plot_images_grid
 
 
 class MeanFlowModule(pl.LightningModule):
@@ -16,7 +19,16 @@ class MeanFlowModule(pl.LightningModule):
         self.config = config
         self.eval_gap = self.config.evaluation.num_train_epoch_per_evaluation
 
-        self.net = MLP(dim=2)
+        if config.model.model_type == ModelType.U_NET:
+            self.net = UNet(image_size=32,
+                                  in_channels=1,
+                                  model_channels=32,
+                                  out_channels=1,
+                                  num_res_blocks=1,
+                                  attention_resolutions=[],
+                                  channel_mult=(1, 2, 4))
+        else:
+            self.net = MLP(dim=2)
 
         self.mean_flow = MeanFlow(config.mean_flow, self.net)
 
@@ -43,7 +55,10 @@ class MeanFlowModule(pl.LightningModule):
         if self.current_epoch % self.eval_gap == 0:
             self._set_model_eval()
             with torch.no_grad():
-                self.visualize_samples()
+                if self.config.data.data_type == DataType.MNIST:
+                    self.visualize_mnist_samples()
+                else:
+                    self.visualize_samples()
             self._set_model_train()
 
 
@@ -54,9 +69,29 @@ class MeanFlowModule(pl.LightningModule):
         for step in steps:
             samples = self.mean_flow.sample(noises, step)
             plot_samples_images.append(plot_samples(noises.cpu().detach().numpy(), samples.cpu().detach().numpy()))
-        self.logger.log_image(key=f"samples",
+        self.logger.log_image(key="samples",
                               images=plot_samples_images,
                               caption=[f"{i}-step sampling" for i in steps])
+
+
+    def visualize_mnist_samples(self) -> None:
+        steps: list[int] = [1, 2, 10]
+        noises = torch.randn(4, 1, 32, 32).to(self.device)
+#        noises = torch.randn(4, 1, 28, 28).to(self.device)
+        reverse_transform = transforms.CenterCrop(28)
+        image_plots = []
+
+        for step in steps:
+            samples = reverse_transform(self.mean_flow.sample(e=noises, step=step))
+#            samples = self.mean_flow.sample(e=noises, step=step)
+            images = samples.cpu().detach().numpy()
+
+            image_plots.append(plot_images_grid(images, num_rows=2, num_cols=2))
+        self.logger.log_image(
+            key="samples",
+            images=image_plots,
+            caption=[f"{i}-step sampling" for i in steps]
+        )
 
 
     def configure_optimizers(self):

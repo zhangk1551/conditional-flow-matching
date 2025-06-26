@@ -1,0 +1,16 @@
+data:
+  data_type: DataType.MNIST
+  batch_size: 256
+model:
+  model_type: ModelType.U_NET
+mean_flow:
+  use_optimal_transport: False
+  unequal_ratio: 0.25
+evaluation:
+  num_train_epoch_per_evaluation: 1
+trainer:
+  max_epochs: 100
+  fast_dev_run: False
+  overfit_batches: 0.0
+  lr: 0.0001
+  optim_method: "Adam"
